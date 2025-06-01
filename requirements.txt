@@ -4,3 +4,4 @@ uvicorn[standard]
 torch
 torchvision
 pillow
+gunicorn
