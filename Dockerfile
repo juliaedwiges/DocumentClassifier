@@ -7,9 +7,11 @@ WORKDIR /app
 # Copia o requirements para a imagem
 COPY requirements.txt .
 
-# Atualiza o pip e instala dependências
+# Atualiza o pip
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+
+# Instala as dependências, forçando PyTorch CPU
+RUN pip install --no-cache-dir -r requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
 # Copia o restante do código
 COPY . .
