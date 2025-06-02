@@ -20,11 +20,13 @@ transform = transforms.Compose([
 
 device = torch.device("cpu")
 
-# Carrega modelo globalmente no startup
 @app.on_event("startup")
 def load_model():
     global model
-    model_path = os.path.join('model', 'document_classifier.pth')
+    # Caminho absoluto para o modelo na pasta ../model
+    model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'document_classifier.pth')
+    model_path = os.path.abspath(model_path)
+    
     model = models.resnet18(pretrained=False)
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, len(classes))
@@ -33,16 +35,18 @@ def load_model():
 
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
-    image_bytes = await file.read()
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    input_tensor = transform(image).unsqueeze(0)
-    with torch.no_grad():
-        outputs = model(input_tensor)
-        probs = torch.nn.functional.softmax(outputs, dim=1)
-        confidence, predicted = torch.max(probs, 1)
-        predicted_class = classes[predicted.item()]
-    return JSONResponse(content={
-        "predicted_class": predicted_class,
-        "confidence": round(confidence.item(), 4)
-    })
-
+    try:
+        image_bytes = await file.read()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        input_tensor = transform(image).unsqueeze(0)
+        with torch.no_grad():
+            outputs = model(input_tensor)
+            probs = torch.nn.functional.softmax(outputs, dim=1)
+            confidence, predicted = torch.max(probs, 1)
+            predicted_class = classes[predicted.item()]
+        return JSONResponse(content={
+            "predicted_class": predicted_class,
+            "confidence": round(confidence.item(), 4)
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
