@@ -23,15 +23,23 @@ device = torch.device("cpu")
 @app.on_event("startup")
 def load_model():
     global model
-    # Caminho absoluto para o modelo na pasta ../model
-    model_path = os.path.join(os.path.dirname(__file__), '..', 'model', 'document_classifier.pth')
-    model_path = os.path.abspath(model_path)
-    
-    model = models.resnet18(pretrained=False)
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, len(classes))
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.eval()
+    try:
+        # Caminho absoluto corrigido (assumindo que a pasta "model" está na raiz do projeto)
+        model_path = os.path.abspath("model/document_classifier.pth")
+        print(f"[INFO] Carregando modelo de: {model_path}")
+
+        model = models.resnet18(pretrained=False)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, len(classes))
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        model.eval()
+        print("[INFO] Modelo carregado com sucesso.")
+    except Exception as e:
+        print(f"[ERRO] Falha ao carregar modelo: {e}")
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
@@ -49,4 +57,5 @@ async def predict(file: UploadFile = File(...)):
             "confidence": round(confidence.item(), 4)
         })
     except Exception as e:
+        print(f"[ERRO] Falha na predição: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
