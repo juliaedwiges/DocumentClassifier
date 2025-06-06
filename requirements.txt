@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-torch==2.2.0+cpu
+torch==2.2.0
 torchvision==0.17.0+cpu
 pillow
 gunicorn
